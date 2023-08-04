@@ -1,0 +1,9 @@
+"{{infrastructure_label}}" {% set s = infrastructure_type.toPython()|string -%}
+{%- if s == "steel" -%}
+is an industrial plant for the manufacture of steel
+{%- elif s == "aluminum" -%}
+is an industrial plant for the manufacture of aluminium
+{%- else -%}
+is an oil or gas refinery
+{%- endif -%}.
+It is located at {{ adm2_label|d('', true) }}, {{ adm1_label|d('', true) }} in the country {{country_label}}.

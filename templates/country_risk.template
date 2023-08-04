@@ -1,0 +1,21 @@
+{{ country }} is a country in {{ continent_label }} .
+According to the World Risk Index report of 2022, {{ country }} has a {% set val = risk_score.toPython() %}
+{%- if val < 3.5 %}
+very low
+{%- elif val < 5.54 %}
+low
+{%- elif val < 7.66 %}
+medium
+{%- elif val < 10.71 %}
+high
+{%- else %}
+very high
+{%- endif %} risk index score with {{ risk_score }}.
+Its exposure score has been assigned to {{ exposure_score }}.
+Its susceptibility score has been assigned to {{ susceptibility_score }}.
+Its lack of coping capacity has been assigned to {{ coping_capacity_score }}.
+Its lack of adaptive capacity has been assigned to {{ adaptive_capacity_score }}.
+Its vulnerability has been assigned to {{ vulnerability_score }}.
+
+{% include 'country_corruption.template' %}
+

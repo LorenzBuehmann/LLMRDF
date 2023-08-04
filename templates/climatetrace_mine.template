@@ -1,0 +1,11 @@
+"{{infrastructure_label}}" {% set s = infrastructure_type.toPython()|string -%}
+{%- set list = s.split('-') -%}
+{%- set text = list[0] -%}
+{%- if list|length == 2 -%}
+is a {{ text }} mine
+{%- elif s == "Gas" -%}
+is a gas field
+{%- else -%}
+is an oil field
+{%- endif -%}.
+It is located at {{ adm2_label|d('', true) }}, {{ adm1_label|d('', true) }} in the country {{country_label}}.

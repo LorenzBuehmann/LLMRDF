@@ -1,0 +1,37 @@
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix data: <https://data.coypu.org/event/acled/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix gn: <https://sws.geonames.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix acled: <https://schema.coypu.org/acled#> .
+@prefix coy: <https://schema.coypu.org/global#> .
+
+data:CAO7137  rdf:type          coy:Event ;
+        rdf:type                coy:Conflict ;
+        rdf:type                coy:MobViolence ;
+        coy:hasActor            <https://data.coypu.org/acled/Rioters_%28Cameroon%29> ;
+        coy:hasActor            <https://data.coypu.org/acled/Civilians_%28Cameroon%29> ;
+        rdfs:label              "Mob violence in Bamenda, Cameroon"@en ;
+        rdfs:comment            "Around 17 March 2023, a mob attacked a man in his 50s in Bamenda (Bamenda 1, Mezam, Nord-Ouest). He was severely beaten and died at the hospital. He had been stealing chicken and was believed to be part of a bandit in the area."@en ;
+        coy:hasCountryLocation  <https://data.coypu.org/country/CMR> ;
+        coy:hasTimestamp        "2023-03-17"^^xsd:date ;
+        coy:hasFatalities       1 ;
+        coy:hasLatitude         "5.9333"^^xsd:double ;
+        coy:hasLongitude        "10.1667"^^xsd:double ;
+        coy:hasLocation         <https://sws.geonames.org/2234974/> ;
+        geo:hasGeometry         <https://data.coypu.org/event/acled/CAO7137/geometry> .
+
+<https://data.coypu.org/event/acled/CAO7137/geometry>
+        geo:asWKT  "POINT(10.1667 5.9333)"^^geo:wktLiteral .
+
+<https://data.coypu.org/acled/Rioters_%28Cameroon%29>
+        rdfs:label              "Rioters (Cameroon)"@en ;
+        coy:hasCountryLocation  <https://data.coypu.org/country/CMR> .
+
+<https://data.coypu.org/acled/Civilians_%28Cameroon%29>
+        rdfs:label              "Civilians (Cameroon)"@en ;
+        rdf:type                acled:Civilians ;
+        coy:hasCountryLocation  <https://data.coypu.org/country/CMR> .
+
+<https://data.coypu.org/country/CMR> rdfs:label "Cameroon"@en .

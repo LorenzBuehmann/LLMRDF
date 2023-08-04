@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    command: uvicorn app.query_api:app --host 0.0.0.0 --port 8000 
+    #--root-path /api
+    volumes:
+      - .:/app
+    #ports:
+    #  - 8008:8000
+    expose: 
+      - 8000
+    networks:
+      - sub
+      - backend
+    environment:
+      VIRTUAL_HOST: "vectors.coypu.org"
+      VIRTUAL_PORT: "8000"
+      #VIRTUAL_PATH: /api/
+      LETSENCRYPT_HOST: "vectors.coypu.org"
+      WEAVIATE_URL: http://weaviate:8080
+    depends_on:
+      - weaviate
+    restart: unless-stopped
+
+  weaviate:
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    networks:
+    - backend
+    image: semitechnologies/weaviate:1.20.1
+    hostname: weaviate
+    container_name: weaviate
+    ports:
+    - 8080:8080
+    restart: unless-stopped
+    volumes:
+      - /data/datasets/weaviate/coypu:/var/lib/weaviate
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: ''
+      CLUSTER_HOSTNAME: 'node1'
+
+
+networks:
+    backend:
+       #internal: true
+    sub:
+       external:
+          name: reverseproxy_sub

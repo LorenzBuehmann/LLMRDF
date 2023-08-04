@@ -1,0 +1,4 @@
+On {{event_date}}, a {{event_type}} more specifically a {{sub_event_type}} occurred at {{event_location}} in {{event_country}}.
+The event involved {{ actors_involved}} and resulted in {{ num_fatalities}} fatalities.
+{{additional_information}}.
+

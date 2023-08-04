@@ -1,0 +1,6 @@
+{% set type_str = type.toPython()|string -%}
+{%- if type_str == "https://schema.coypu.org/global#Mine" -%}
+{% include 'climatetrace_mine.template' -%}
+{%- else -%}
+{% include 'climatetrace_factory.template' -%}
+{%- endif -%}

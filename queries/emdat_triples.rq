@@ -1,0 +1,36 @@
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX coy: <https://schema.coypu.org/global#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+CONSTRUCT {
+  #?event a ?type .
+  ?event coy:hasEventType ?type .
+  ?event coy:hasCountryLocation ?country .
+  ?event rdfs:label ?label .
+  ?event coy:hasStartDate ?start .
+  ?event coy:hasEndDate ?end .
+  ?country rdfs:label ?country_label .
+  ?type rdfs:label ?type_label .
+  ?event coy:hasAffectedRegion ?region .
+  ?region rdfs:label ?region_label .
+} WHERE {
+  {
+    SELECT * {
+      GRAPH <https://data.coypu.org/events/emdat/> {
+        ?event a ?type .
+        ?event coy:hasCountryLocation ?country .
+        ?event rdfs:label ?label .
+        ?event coy:hasStartDate ?start .
+        OPTIONAL {?event coy:hasEndDate ?end .}
+        OPTIONAL {?event coy:hasAffectedRegion ?region . ?region rdfs:label ?region_label}
+
+        FILTER(?type NOT IN (coy:Disaster, coy:Event))
+      }
+    }
+    #LIMIT 1000
+  }
+  ?country rdfs:label ?country_label .
+  ?type rdfs:label ?type_label .
+}
+

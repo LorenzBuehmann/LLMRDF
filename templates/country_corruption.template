@@ -1,0 +1,4 @@
+According to the Transparency International organisation, in year {{ cpi_year }} {{ country }} has a {% set val = cpi_value.toPython() %}
+corruption perception index score of {{ val }} out of 100 to express the perceived levels of public-sector corruption according to experts and businesspeople.
+
+

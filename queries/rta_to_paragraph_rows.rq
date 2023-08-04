@@ -1,0 +1,33 @@
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX coy: <https://schema.coypu.org/global#>
+PREFIX gta: <https://schema.coypu.org/gta#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX ta: <https://schema.coypu.org/ta#>
+
+SELECT
+?event
+?event_type
+(GROUP_CONCAT(DISTINCT ?country_label;
+    separator=", ") AS ?signatories)
+#(GROUP_CONCAT(DISTINCT ?region_label;
+#    separator=", ") AS ?affected_regions)
+?label
+?date
+?sector
+(GROUP_CONCAT(DISTINCT ?region;
+    separator=", ") AS ?regions)
+{
+    ?event a ?type . FILTER(?type NOT IN (coy:Disaster, coy:Event))
+    ?event ta:hasCurrentSignatories ?country .
+    ?event rdfs:label ?label .
+    ?event ta:hasDateOfEntryIntoForce%28Goods%29 ?date .
+    ?event coy:hasRegion ?region .
+    ?event ta:hasCoverage ?sector .
+
+
+   ?country rdfs:label ?country_label .
+   ?type rdfs:label ?event_type .
+}
+GROUP BY ?event ?event_type ?date ?label ?sector

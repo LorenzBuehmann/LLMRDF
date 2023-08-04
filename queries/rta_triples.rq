@@ -1,0 +1,28 @@
+PREFIX coy: <https://schema.coypu.org/global#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ta: <https://schema.coypu.org/ta#>
+
+CONSTRUCT {
+  ?event a ?type .
+  ?event ta:hasCurrentSignatories ?country .
+  ?event rdfs:label ?label .
+  ?event ta:hasDateOfEntryIntoForce%28Goods%29 ?date .
+  ?event coy:hasRegion ?region .
+  ?event ta:hasCoverage ?sector .
+  ?country rdfs:label ?country_label .
+  ?type rdfs:label ?event_type .
+} WHERE {
+  GRAPH <https://data.coypu.org/events/rta/>
+  {
+    ?event a ?type .
+    FILTER(?type NOT IN (coy:Disaster, coy:Event))
+    ?event ta:hasCurrentSignatories ?country .
+    ?event rdfs:label ?label .
+    ?event <https://schema.coypu.org/ta#hasDateOfEntryIntoForce%28Goods%29> ?date .
+    ?event coy:hasRegion ?region .
+    ?event ta:hasCoverage ?sector .
+  }
+  ?country rdfs:label ?country_label .
+  ?type rdfs:label ?event_type .
+}

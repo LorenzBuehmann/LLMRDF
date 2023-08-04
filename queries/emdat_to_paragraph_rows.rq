@@ -1,0 +1,28 @@
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX coy: <https://schema.coypu.org/global#>
+PREFIX gta: <https://schema.coypu.org/gta#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT
+?event
+?event_type
+(GROUP_CONCAT(DISTINCT ?country_label; separator=", ") AS ?event_country)
+(GROUP_CONCAT(DISTINCT ?region_label; separator=", ") AS ?affected_regions)
+?start_date
+?end_date
+?label
+
+{
+  ?event coy:hasEventType ?type .
+  ?event coy:hasCountryLocation ?country .
+  ?event rdfs:label ?label .
+  ?event coy:hasStartDate ?start_date .
+  OPTIONAL {?event coy:hasEndDate ?end_date . }
+  ?country rdfs:label ?country_label .
+  ?type rdfs:label ?event_type .
+  OPTIONAL {?event coy:hasAffectedRegion ?region . ?region rdfs:label ?region_label_ }
+  BIND(COALESCE(?region_label_, "") AS ?region_label)
+}
+GROUP BY ?event ?event_type ?start_date ?end_date ?label

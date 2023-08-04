@@ -1,0 +1,5 @@
+A state act has been announced: "{{ state_act_label }}" .
+On {{ implementation_date }} the country {{ implementing_jurisdiction }} implemented a {{ intervention_type }}  .
+It is a {{ evaluation }} intervention.
+The affected jurisdictions are {{ affected_jurisdictions }}.
+The affected sectors are {{ affected_sectors }}.

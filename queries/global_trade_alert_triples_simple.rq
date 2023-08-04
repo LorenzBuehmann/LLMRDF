@@ -1,0 +1,39 @@
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX coy: <https://schema.coypu.org/global#>
+PREFIX gta: <https://schema.coypu.org/gta#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+CONSTRUCT {
+    ?i  rdf:type gta:Intervention ;
+        rdfs:comment ?state_act_label ;
+        gta:hasInterventionType ?it ;
+        gta:hasImplementationDate ?id ;
+        gta:hasImplementingJurisdiction ?ij ;
+        gta:hasAffectedJurisdiction ?aj ;
+        gta:hasAffectedSector ?sector .
+    ?ij rdfs:label ?ij_label .
+    ?aj rdfs:label ?aj_label .
+    ?it rdfs:label ?it_label .
+    ?sector rdfs:label ?sector_label .
+} WHERE {
+  {
+    SELECT * {
+      GRAPH <https://data.coypu.org/events/gta/> {
+        { SELECT * { ?state_act a gta:StateAct . } LIMIT 10000 }
+        ?state_act gta:hasIntervention ?i .
+        ?state_act rdfs:label ?state_act_label .
+        ?i  gta:hasInterventionType ?it ;
+            gta:hasImplementationDate ?id ;
+            gta:hasImplementingJurisdiction ?ij ;
+            gta:hasAffectedJurisdiction ?aj ;
+            gta:hasAffectedSector ?sector .
+      }
+    }
+  }
+  ?ij rdfs:label ?ij_label .
+  ?aj rdfs:label ?aj_label .
+  ?it rdfs:label ?it_label .
+  ?sector skos:prefLabel ?sector_label .
+}

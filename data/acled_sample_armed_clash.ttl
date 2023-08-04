@@ -1,0 +1,34 @@
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix data: <https://data.coypu.org/event/acled/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix gn: <https://sws.geonames.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix acled: <https://schema.coypu.org/acled#> .
+@prefix coy: <https://schema.coypu.org/global#> .
+
+<https://data.coypu.org/event/acled/HND8094>
+        a       <https://schema.coypu.org/global#Event> ;
+        a       <https://schema.coypu.org/global#Conflict> ;
+        a       <https://schema.coypu.org/global#ArmedClash> ;
+        <https://schema.coypu.org/global#hasActor>  <https://data.coypu.org/acled/Police_Forces_of_Honduras_%282022-%29> ;
+        <https://schema.coypu.org/global#hasActor>  <https://data.coypu.org/acled/B-18%3A_Barrio-18> ;
+        <http://www.w3.org/2000/01/rdf-schema#label>  "Armed clash in Tatumbla, Honduras"@en ;
+        <http://www.w3.org/2000/01/rdf-schema#comment>  "On 17 March 2023, outside Tatumbla, Francisco Morazan, police forces clashed with members of the Barrio-18 Gang in the mountainous area of Azacualpa during a police operation in the area, leaving one of the gang members wounded. Police forces ended up arresting two gang members following the clash. 1 injured."@en ;
+        <https://schema.coypu.org/global#hasCountryLocation>  <https://data.coypu.org/country/HND> ;
+        <https://schema.coypu.org/global#hasTimestamp>  "2023-03-17"^^<http://www.w3.org/2001/XMLSchema#date> ;
+        <https://schema.coypu.org/global#hasFatalities>  0 ;
+        <https://schema.coypu.org/global#hasLatitude>  "14.0167"^^<http://www.w3.org/2001/XMLSchema#double> ;
+        <https://schema.coypu.org/global#hasLongitude>  "-87.1"^^<http://www.w3.org/2001/XMLSchema#double> ;
+        <https://schema.coypu.org/global#hasLocation>  <https://sws.geonames.org/3600971/> ;
+        <http://www.opengis.net/ont/geosparql#hasGeometry>  <https://data.coypu.org/event/acled/HND8094/geometry> .
+
+<https://data.coypu.org/event/acled/HND8094/geometry>
+        <http://www.opengis.net/ont/geosparql#asWKT>  "POINT(-87.1 14.0167)"^^<http://www.opengis.net/ont/geosparql#wktLiteral> .
+
+<https://data.coypu.org/acled/Police_Forces_of_Honduras_%282022-%29>
+        <http://www.w3.org/2000/01/rdf-schema#label>  "Police Forces of Honduras (2022-)"@en .
+
+<https://data.coypu.org/acled/B-18%3A_Barrio-18>
+        <http://www.w3.org/2000/01/rdf-schema#label>  "B-18: Barrio-18"@en ;
+        a       <https://schema.coypu.org/acled#PoliticalMilitias> .

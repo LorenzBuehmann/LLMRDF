@@ -1,0 +1,23 @@
+PREFIX coy: <https://schema.coypu.org/global#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT
+*
+WHERE {
+  ?entity
+    coy:hasCopingCapability ?coping_capacity_score ;
+    coy:hasCpiScore ?cpi_score ;
+    coy:hasRiskLevel ?risk_score ;
+    coy:hasSusceptibility ?susceptibility_score ;
+    coy:hasVulnerability ?vulnerability_score ;
+    coy:hasExposure ?exposure_score ;
+    coy:hasAdaptiveCapability ?adaptive_capacity_score ;
+    coy:hasContinentLocation ?continent ;
+
+    .
+  ?cpi_score coy:hasYear ?cpi_year ;
+             coy:hasValue ?cpi_value .
+  ?entity rdfs:label ?country . FILTER(LANG(?country) = "en")
+  ?continent rdfs:label ?continent_label . FILTER(LANG(?country) = "en")
+}

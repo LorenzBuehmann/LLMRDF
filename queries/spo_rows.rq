@@ -1,0 +1,28 @@
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX coy: <https://schema.coypu.org/global#>
+PREFIX gta: <https://schema.coypu.org/gta#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+
+SELECT
+?s
+?p
+?o
+?s_str
+?p_str
+?o_str
+{
+?s ?p ?o .
+FILTER(?p NOT IN (rdfs:label))
+
+OPTIONAL {?s rdfs:label ?s_label}
+OPTIONAL {?p rdfs:label ?p_label}
+OPTIONAL {?o rdfs:label ?o_label}
+
+BIND(COALESCE(?s_label, STR(?s)) AS ?s_str)
+BIND(IF(?p = rdf:type, "is a", COALESCE(?p_label, STR(?p))) AS ?p_str)
+BIND(IF(isLiteral(?o), STR(?o), COALESCE(?o_label, STR(?o))) AS ?_o_str)
+}
+ORDER BY ?s ?p ?o

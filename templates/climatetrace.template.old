@@ -1,0 +1,11 @@
+The "{{infrastructure_label}}" is a
+
+{% if infrastructure_type = "" %}
+
+is an industrial plant for the manufacture of steel
+is an industrial plant for the manufacture of aluminium
+is a oil or gas refineries for the manufacture of aluminium
+     {% endif %}
+factory working on {{ infrastructure_type}}
+
+and located at {{ adm1_label|d('', true) }}, {{ adm2_label|d('', true) }} in the country {{country_label}}.

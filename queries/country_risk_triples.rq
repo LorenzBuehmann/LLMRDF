@@ -1,0 +1,50 @@
+PREFIX coy: <https://schema.coypu.org/global#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+CONSTRUCT {
+  ?s ?p ?o .
+  ?o ?p1 ?o1 .
+  ?s coy:hasContinentLocation ?continent .
+  ?continent rdfs:label ?continent_label .
+  ?s rdfs:label ?l .
+  ?cpi_score coy:hasYear ?cpi_year ;
+  coy:hasValue ?cpi_value .
+} WHERE {
+  #BIND(<https://data.coypu.org/country/DEU> AS ?s)
+  VALUES ?g {
+    <https://data.coypu.org/countries/>
+    <https://data.coypu.org/country-risks/>
+    <https://data.coypu.org/infrastructure/pipelines/>
+    <https://data.coypu.org/countries/>
+    <https://data.coypu.org/country-statistic/corruption/>
+  }
+  VALUES ?p {
+    coy:hasCopingCapability
+    coy:hasCpiScore
+    coy:hasRiskLevel
+    coy:hasSusceptibility
+    coy:hasVulnerability
+    coy:hasExposure
+    coy:hasAdaptiveCapability
+  }
+  ?s a coy:Country .
+  GRAPH ?g {
+    ?s ?p ?o
+    OPTIONAL {
+      GRAPH ?g2 {
+        ?o ?p1 ?o1
+      }
+    }
+  }
+  ?s coy:hasContinentLocation ?continent .
+  ?s rdfs:label ?l .
+  FILTER(LANG(?l) = "en")
+  ?continent rdfs:label ?continent_label .
+  FILTER(LANG(?continent_label) = "en")
+  GRAPH <https://data.coypu.org/country-statistic/corruption/> {
+      ?s coy:hasCpiScore ?cpi_score .
+      ?cpi_score coy:hasYear ?cpi_year ;
+                 coy:hasValue ?cpi_value .
+  }
+}
+#LIMIT 100

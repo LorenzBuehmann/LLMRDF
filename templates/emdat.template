@@ -1,0 +1,6 @@
+{% if start_date != end_date %}From {{ start_date }} until {{ end_date }}{% else %}On {{start_date}}{%endif %} there was a {{ event_type }} in {{ event_country }}.
+{% if affected_regions %}
+Affected regions:
+{{ affected_regions }}
+{% else %}
+{%endif %}
