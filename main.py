@@ -12,7 +12,7 @@ from rdf_loader import RDFReader
 
 import os
 
-os.environ["OPENAI_API_KEY"] = "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"
+os.environ["OPENAI_API_KEY"] = ""
 
 
 def open_ai():
