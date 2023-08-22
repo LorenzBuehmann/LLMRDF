@@ -1,8 +1,6 @@
-import rdflib.term
-
 from instructor_api import Instructor, DEFAULT_EMBED_INSTRUCTION, DEFAULT_QUERY_INSTRUCTION
 
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, List, Tuple
 
 
 from rdflib import RDF, RDFS, URIRef, Literal, Namespace, Graph
@@ -21,6 +19,11 @@ import os
 
 from dotenv import load_dotenv
 
+import click
+
+import logging
+
+
 load_dotenv()
 
 QUERIES_PATH = Path("./queries")
@@ -28,12 +31,21 @@ TEMPLATES_PATH = Path("./templates")
 WEAVIATE_URL = os.environ.get("WEAVIATE_URL")
 
 
+instructor = Instructor('https://instructor.skynet.coypu.org/')
+
+kg = CoypuKnowledgeGraph()
+COY = Namespace("https://schema.coypu.org/global#")
+
+logger = logging.getLogger(__name__)
+
 def setup_weaviate() -> weaviate.Client:
     client = weaviate.Client(WEAVIATE_URL)
     client.is_ready()
 
     return client
 
+
+client = setup_weaviate()
 
 def create_schema(client: Client):
     schema = {
@@ -87,8 +99,113 @@ def create_schema(client: Client):
     client.schema.create(schema)
 
 
-def clear_data(client: Client):
+def create_weaviate_class(client: Client, class_name: str, description: str):
+    class_obj = {
+                "class": class_name,
+                "description": description,
+                "properties": [
+                    {
+                        "dataType": ["text"],
+                        "description": "The concise bounded description of an entity as text.",
+                        "name": "content",
+                    },
+                    {
+                        "dataType": ["text"],
+                        "description": "The uri of the entity being vectorized.",
+                        "name": "uri",
+                    },
+                ],
+            }
+
+    if client.schema.exists(class_name):
+        client.schema.delete_class(class_name)
+    client.schema.create_class(class_obj)
+
+
+@click.group()
+@click.option('--debug/--no-debug', default=False)
+@click.pass_context
+def cli(ctx, debug):
+    ctx.ensure_object(dict)
+    click.echo(f"Debug mode is {'on' if debug else 'off'}")
+    if debug:
+        logger.setLevel(logging.DEBUG)
+
+
+@cli.command()
+def clear_data():
     client.schema.delete_all()
+
+
+@cli.command()
+@click.option('--index-per-dataset', is_flag=True)
+def create_index(index_per_dataset: bool):
+    datasets = [
+        Dataset.GTA,
+        Dataset.DISASTERS,
+        Dataset.ACLED,
+        # Dataset.EMDAT,
+        # Dataset.RTA,
+        Dataset.CLIMATETRACE,
+        Dataset.COUNTRY_RISK
+    ]
+
+    for ds in datasets:
+        logging.info(f"processing dataset {ds}")
+        graph = kg.get_rdf_data_for_dataset(ds)
+        logger.debug(f"got {len(graph)} triples")
+
+        ontology = kg.get_ontology(with_imports=True)
+        graph = graph + ontology
+        entities, paragraphs = render_dataset_entities(graph, ds)
+
+        # sentences = create_sentences_by_triple(graph)
+        # entities, sentences = create_sentences_from_entity_cbd(graph, schema=ontology, compact=True)
+
+        # sentences2 = render_dataset_entities(graph, ds)
+        # for s in sentences2:
+        #     print(s)
+
+        for s in paragraphs[0:2]:
+            logging.debug(s)
+
+        class_name = "CBD"
+        if index_per_dataset:
+            class_name = ds.name
+            create_weaviate_class(client, class_name, f"entities about {class_name}")
+
+        load_data(class_name, entities, paragraphs)
+
+
+@cli.command()
+def recreate_index():
+    clear_data()
+    create_index()
+
+
+@cli.command()
+@click.argument('question', nargs=1)
+@click.option('--hybrid/--no-hybrid', 'hybrid_query_mode', default=False)
+@click.option('--limit', '-k', type=int, default=10)
+def query(question: str, hybrid_query_mode: bool, limit: int):
+    query_embedding = instructor.compute_embedding(
+        instruction=DEFAULT_QUERY_INSTRUCTION,
+        text=question)
+
+    def render_result(res) -> str:
+        print(res)
+        score = float(res['_additional']['score']) if hybrid_query_mode else res['_additional']['certainty']
+        return f"{res['content']} (Score: {round(score, 3)})"
+
+    query_result = query_weaviate(client,
+                                  query=question,
+                                  vector=query_embedding,
+                                  collection_name="CBD",
+                                  limit=limit,
+                                  hybrid_search_mode=hybrid_query_mode)
+    # print(json.dumps(query_result, indent=2))
+    for i, item in enumerate(query_result):
+        print(f"{i + 1}. {render_result(item)}")
 
 
 def query_weaviate(client: Client, query: str, vector, collection_name: str, hybrid_search_mode: bool = True, limit: int = 10):
@@ -98,7 +215,8 @@ def query_weaviate(client: Client, query: str, vector, collection_name: str, hyb
     }
 
     properties = [
-        "content"
+        "content",
+        "uri"
     ]
 
     builder = client.query.get(collection_name, properties)
@@ -226,7 +344,7 @@ def render_entity_row(row, template):
 
 def render_entities(graph: Graph, query_file: str, template: Template, render_function: Callable = render_entity_row):
     query = (QUERIES_PATH / query_file).read_text()
-    print(query)
+    logging.debug(query)
     qres = graph.query(query)
 
     entities, paragraphs = zip(*[render_function(row, template) for row in qres])
@@ -239,9 +357,8 @@ def render_entities(graph: Graph, query_file: str, template: Template, render_fu
 # def render_event_data():
 
 
-
-def load_data(uris: List[str], sentences: List[str]):
-    print(f"computing embeddings for {len(sentences)} triple texts ...")
+def load_data(class_name: str, uris: List[str], sentences: List[str]):
+    logging.debug(f"computing embeddings for {len(sentences)} triple texts ...")
     from tqdm.auto import tqdm
 
     count = 0  # we'll use the count to create unique IDs
@@ -273,60 +390,63 @@ def load_data(uris: List[str], sentences: List[str]):
 
                 batch.add_data_object(properties,
                                       uuid=uuid,
-                                      class_name="CBD",
+                                      class_name=class_name,
                                       vector=data[2])
 
 
-
-
 if __name__ == '__main__':
-    client = setup_weaviate()
-
-    clear_data(client)
-    create_schema(client)
-
-    instructor = Instructor('https://instructor.skynet.coypu.org/')
-
-    kg = CoypuKnowledgeGraph()
-    COY = Namespace("https://schema.coypu.org/global#")
-
-    # graph = kg.get_rdf_data_for_cls(COY.Disaster)
-
-    datasets = [
-        Dataset.GTA,
-        Dataset.DISASTERS,
-        Dataset.ACLED,
-        # Dataset.EMDAT,
-        # Dataset.RTA,
-        Dataset.CLIMATETRACE,
-        Dataset.COUNTRY_RISK
-    ]
-
-    for ds in datasets:
-        print(f"processing dataset {ds}")
-        graph = kg.get_rdf_data_for_dataset(ds)
-        print(f"got {len(graph)} triples")
-
-        ontology = kg.get_ontology(with_imports=True)
-        graph = graph + ontology
-        entities, paragraphs = render_dataset_entities(graph, ds)
-
-        # sentences = create_sentences_by_triple(graph)
-        # entities, sentences = create_sentences_from_entity_cbd(graph, schema=ontology, compact=True)
-
-        # sentences2 = render_dataset_entities(graph, ds)
-        # for s in sentences2:
-        #     print(s)
-
-        for s in paragraphs[0:5]:
-            print(s)
-        load_data(entities, paragraphs)
-
-    queries = [
-        "Which state acts implemented by Germany do affect the medical products sector?",
-        "Which countries have been affected by wildfire in June 2023?",
-        "What was the latest drought on the Bahamas and Haiti in 2022?"
-    ]
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(name)s %(levelname)-8s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S")
+    cli()
+    # client = setup_weaviate()
+    #
+    # clear_data(client)
+    # create_schema(client)
+    #
+    # instructor = Instructor('https://instructor.skynet.coypu.org/')
+    #
+    # kg = CoypuKnowledgeGraph()
+    # COY = Namespace("https://schema.coypu.org/global#")
+    #
+    # # graph = kg.get_rdf_data_for_cls(COY.Disaster)
+    #
+    # datasets = [
+    #     # Dataset.GTA,
+    #     Dataset.DISASTERS,
+    #     # Dataset.ACLED,
+    #     # Dataset.EMDAT,
+    #     # Dataset.RTA,
+    #     # Dataset.CLIMATETRACE,
+    #     # Dataset.COUNTRY_RISK
+    # ]
+    #
+    # for ds in datasets:
+    #     print(f"processing dataset {ds}")
+    #     graph = kg.get_rdf_data_for_dataset(ds)
+    #     print(f"got {len(graph)} triples")
+    #
+    #     ontology = kg.get_ontology(with_imports=True)
+    #     graph = graph + ontology
+    #     entities, paragraphs = render_dataset_entities(graph, ds)
+    #
+    #     # sentences = create_sentences_by_triple(graph)
+    #     # entities, sentences = create_sentences_from_entity_cbd(graph, schema=ontology, compact=True)
+    #
+    #     # sentences2 = render_dataset_entities(graph, ds)
+    #     # for s in sentences2:
+    #     #     print(s)
+    #
+    #     for s in paragraphs[0:5]:
+    #         print(s)
+    #     load_data(entities, paragraphs)
+    #
+    # queries = [
+    #     "Which state acts implemented by Germany do affect the medical products sector?",
+    #     "Which countries have been affected by wildfire in June 2023?",
+    #     "What was the latest drought on the Bahamas and Haiti in 2022?"
+    # ]
 
     # query_embeddings = instructor.compute_embeddings(
     #     instruction=DEFAULT_QUERY_INSTRUCTION,
@@ -337,7 +457,7 @@ if __name__ == '__main__':
     # def render_result(res) -> str:
     #     score = float(res['_additional']['score']) if hybrid_query_mode else res['_additional']['certainty']
     #     return f"{res['content']} (Score: {round(score, 3)})"
-
+    #
     # for query, query_embedding in zip(queries, query_embeddings):
     #     print(f"results for query \"{query} \"")
     #     query_result = query_weaviate(client,

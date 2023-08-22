@@ -1,0 +1,76 @@
+PREFIX geof: <http://www.opengis.net/def/function/geosparql/>
+PREFIX spatialf: <http://jena.apache.org/spatial#>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX coy: <https://schema.coypu.org/global#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ta: <https://schema.coypu.org/ta#>
+PREFIX geob: <https://schema.coypu.org/geoboundaries#>
+
+PREFIX geof: <http://www.opengis.net/def/function/geosparql/>
+PREFIX spatialf: <http://jena.apache.org/spatial#>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX coy: <https://schema.coypu.org/global#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ta: <https://schema.coypu.org/ta#>
+PREFIX geob: <https://schema.coypu.org/geoboundaries#>
+
+CONSTRUCT {
+  ?event a ?type .
+  ?type rdfs:label ?type_label .
+  ?event rdfs:label ?event_label .
+  ?event coy:hasCountryLocation ?country .
+  ?country rdfs:label ?country_label .
+  ?event geo:withinAdm1 ?adm1 . ?adm1 rdfs:label ?adm1_label .
+  ?event geo:withinAdm2 ?adm2 . ?adm2 rdfs:label ?adm2_label .
+
+}
+WHERE {
+  {
+    SELECT * {
+      GRAPH <https://data.coypu.org/disasters/>
+      {
+
+       #BIND(<https://data.coypu.org/event/gdacs/TC1000990> AS ?event)
+        ?event a ?type ;
+         coy:hasCountryLocation ?country ;
+       coy:hasStartTimestamp ?start_ts ;
+       coy:hasAffectedRegion ?region .
+        ?region geo:hasGeometry/geo:asWKT ?region_polygon .
+        FILTER(?type NOT IN (coy:Event, coy:Disaster))
+      }
+    }
+    #ORDER BY DESC(?start_ts)
+    #LIMIT 20
+  }
+  #
+  #  ?country rdfs:label ?country_label .
+  ?type rdfs:label ?type_label .
+  ?event rdfs:label ?event_label .
+  #
+  LATERAL {
+    OPTIONAL {
+      GRAPH <https://data.coypu.org/administrative-regions/> {
+        ?adm1 spatialf:intersectBoxGeom (?region_polygon) .
+        ?adm1 geo:hasGeometry/geo:asWKT ?adm1_polygon .
+        ?adm1 geob:hasAdminLevel 1	 .
+        FILTER(geof:sfIntersects(?adm1_polygon, ?region_polygon))
+        ?adm1 rdfs:label ?adm1_label
+      }
+#      LATERAL {
+#        OPTIONAL {
+#          GRAPH <https://data.coypu.org/administrative-regions/> {
+#            ?adm2 spatialf:intersectBoxGeom (?adm1_polygon) .
+#            ?adm2 geo:hasGeometry/geo:asWKT ?adm2_polygon .
+#            ?adm2 geob:hasAdminLevel 2	 .
+#            FILTER(geof:sfIntersects(?adm2_polygon, ?region_polygon))
+#            ?adm2 rdfs:label ?adm2_label
+#          }
+#        }
+#      }
+    }
+  }
+}

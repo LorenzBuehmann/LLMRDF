@@ -45,6 +45,8 @@ class VicunaLLM(LLM):
 
         text = response.json()[0]['choices'][0]['message']['content']
 
+        text = text.replace("\\_", "_") # needed to avoid invalid escaped JSON keys for reuqested JSON response in LangChain
+
         return text
 
     @property

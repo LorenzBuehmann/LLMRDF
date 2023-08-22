@@ -10,6 +10,8 @@ from typing import Any, Callable, List, Optional
 from enum import Enum
 from pathlib import Path
 
+import logging
+
 DEFAULT_DISASTER_CONSTRUCT_QUERY = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
                             PREFIX coy: <https://schema.coypu.org/global#>
                             PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -127,7 +129,7 @@ class CoypuKnowledgeGraph:
         sparql.setHTTPAuth(BASIC)
         sparql.setCredentials(user=self.skynet_user, passwd=self.skynet_pwd)
 
-        print(query)
+        logging.debug(query)
         sparql.setQuery(query)
 
         res = sparql.queryAndConvert()
@@ -146,7 +148,7 @@ class CoypuKnowledgeGraph:
         sparql.setHTTPAuth(BASIC)
         sparql.setCredentials(user=self.skynet_user, passwd=self.skynet_pwd)
 
-        print(query)
+        logging.debug(query)
         sparql.setQuery(query)
         sparql.setReturnFormat(TURTLE)  # default is RDF/XML but it fails to parse for RTA dataset TODO check why
 
@@ -160,7 +162,7 @@ class CoypuKnowledgeGraph:
 
     def get_rdf_data_for_cls(self, cls: URIRef = None):
         query = DEFAULT_CONSTRUCT_QUERY.format(cls=str(cls), limit=10)
-        print(query)
+        logging.debug(query)
         return self.get_rdf_data(query=query)
 
     def get_ontology(self, with_imports: bool = False):
@@ -173,7 +175,7 @@ class CoypuKnowledgeGraph:
                          filecache={'cache_storage': '/tmp/ontology_cache'},
                          https={'client_kwargs': {'headers': {'Accept': 'text/turtle'}}},
                          )
-        print(f"loading ontology <{url}>")
+        logging.debug(f"loading ontology <{url}>")
         with of as f:
             g = Graph()
             g.parse(f, format="turtle")
@@ -181,7 +183,7 @@ class CoypuKnowledgeGraph:
             if with_imports:
                 imports = []
                 for s, p, o in g.triples((None, OWL.imports, None)):
-                    print(f"loading import <{o}>")
+                    logging.debug(f"loading import <{o}>")
                     of2 = fsspec.open(f"filecache::{o}",
                                      mode='rt',
                                      filecache={'cache_storage': '/tmp/ontology_cache'},
