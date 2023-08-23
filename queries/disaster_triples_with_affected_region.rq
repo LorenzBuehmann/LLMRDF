@@ -7,16 +7,7 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ta: <https://schema.coypu.org/ta#>
 PREFIX geob: <https://schema.coypu.org/geoboundaries#>
-
-PREFIX geof: <http://www.opengis.net/def/function/geosparql/>
-PREFIX spatialf: <http://jena.apache.org/spatial#>
-PREFIX geo: <http://www.opengis.net/ont/geosparql#>
-PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX coy: <https://schema.coypu.org/global#>
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX ta: <https://schema.coypu.org/ta#>
-PREFIX geob: <https://schema.coypu.org/geoboundaries#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 CONSTRUCT {
   ?event a ?type .
@@ -24,6 +15,10 @@ CONSTRUCT {
   ?event rdfs:label ?event_label .
   ?event coy:hasCountryLocation ?country .
   ?country rdfs:label ?country_label .
+
+  ?event coy:hasStartDate ?start_date .
+  ?event coy:hasEndDate ?end_date .
+
   ?event geo:withinAdm1 ?adm1 . ?adm1 rdfs:label ?adm1_label .
   ?event geo:withinAdm2 ?adm2 . ?adm2 rdfs:label ?adm2_label .
 
@@ -38,16 +33,19 @@ WHERE {
         ?event a ?type ;
          coy:hasCountryLocation ?country ;
        coy:hasStartTimestamp ?start_ts ;
+       coy:hasEndTimestamp ?end_ts ;
        coy:hasAffectedRegion ?region .
         ?region geo:hasGeometry/geo:asWKT ?region_polygon .
         FILTER(?type NOT IN (coy:Event, coy:Disaster))
+        BIND(xsd:date(?start_ts) AS ?start_date)
+        BIND(xsd:date(?end_ts) AS ?end_date)
       }
     }
     #ORDER BY DESC(?start_ts)
     #LIMIT 20
   }
   #
-  #  ?country rdfs:label ?country_label .
+  ?country rdfs:label ?country_label .
   ?type rdfs:label ?type_label .
   ?event rdfs:label ?event_label .
   #

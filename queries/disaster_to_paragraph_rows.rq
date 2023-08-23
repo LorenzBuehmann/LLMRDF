@@ -1,23 +1,33 @@
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX coy: <https://schema.coypu.org/global#>
-PREFIX gta: <https://schema.coypu.org/gta#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
 
 SELECT
 ?entity
 ?event_type
-(GROUP_CONCAT(?country_label; separator=", ") AS ?event_country)
-?event_date
+(GROUP_CONCAT(DISTINCT ?country_label; separator=", ") AS ?event_country)
+#(xsd:date(?start_ts) AS ?start_date)
+#(xsd:date(?end_ts) AS ?end_date)
+?start_date
+?end_date
 ?label
+(GROUP_CONCAT(DISTINCT ?adm1_label; separator=", ") AS ?affected_regions)
 
 {
-  ?entity coy:hasEventType ?type .
-  ?entity coy:hasCountryLocation ?country .
+  ?entity a ?type . ?type rdfs:label ?event_type .
   ?entity rdfs:label ?label .
-  ?entity coy:hasDate ?event_date .
-  ?country rdfs:label ?country_label .
-  ?type rdfs:label ?event_type .
+
+  ?entity coy:hasCountryLocation ?country . ?country rdfs:label ?country_label .
+
+  ?entity coy:hasStartDate ?start_date .
+  #BIND(xsd:date(?start_ts) AS ?start_date)
+  ?entity coy:hasEndDate ?end_date .
+  #BIND(xsd:date(?end_ts) AS ?end_date)
+
+
+  OPTIONAL {?entity geo:withinAdm1 ?adm1 . ?adm1 rdfs:label ?adm1_label_ . }
+  BIND(COALESCE(?adm1_label_, "") AS ?adm1_label)
 }
-GROUP BY ?entity ?event_type ?event_date ?label
+GROUP BY ?entity ?label ?event_type ?start_date ?end_date

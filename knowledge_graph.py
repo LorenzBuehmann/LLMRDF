@@ -104,7 +104,7 @@ class CoypuKnowledgeGraph:
 
     DATASET_TO_QUERY = {
         Dataset.GTA: 'global_trade_alert_triples_simple.rq',
-        Dataset.DISASTERS: 'disaster_triples.rq',
+        Dataset.DISASTERS: 'disaster_triples_with_affected_region.rq', #'disaster_triples.rq',
         Dataset.ACLED: 'acled_triples.rq',
         Dataset.EMDAT: 'emdat_triples.rq',
         Dataset.RTA: 'rta_triples.rq',
