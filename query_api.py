@@ -199,10 +199,7 @@ def create_llm_router(llm):
 
 
 vicuna_llm = VicunaLLM()
-openai_llm = OpenAI()
-
 vicuna_llm_router_chain = create_llm_router(vicuna_llm)
-openai_llm_router_chain = create_llm_router(openai_llm)
 
 
 def create_sub_question_generator(llm):
@@ -293,6 +290,12 @@ async def documents(question: str,
 
     if split_questions:
         if openai_secret:
+            openai_sub_question_generator = GuidanceQuestionGenerator.from_defaults(
+                guidance_llm=GuidanceOpenAI("gpt-3.5-turbo", api_key=openai_secret), verbose=False
+            )
+            from llama_index.llms import OpenAI as LLamaOpenAI
+            openai_sub_question_generator = OpenAIQuestionGenerator.from_defaults(
+                llm=LLamaOpenAI(api_key=openai_secret))
             similar_docs = await subquestion_query_retrieval(question, openai_sub_question_generator)
         else:
             similar_docs = await subquestion_query_retrieval(question, vicuna_sub_question_generator)
@@ -301,6 +304,8 @@ async def documents(question: str,
         print(res)
 
         if openai_secret:
+            openai_llm = OpenAI(openai_api_key=openai_secret)
+            openai_llm_router_chain = create_llm_router(openai_llm)
             res = openai_llm_router_chain(question)
         else:
             res = vicuna_llm_router_chain(question)
