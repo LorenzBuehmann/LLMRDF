@@ -220,6 +220,14 @@ dataset_infos = {
         "description": "Good for answering questions about the World Risk Index."
                            "It uses 27 aggregated, publicly available indicators to determine disaster risk for 181 countries worldwide. "
                            "Conceptually, the index is composed of exposure to extreme natural hazards and the societal vulnerability of individual countries.",
+    },
+    Dataset.ACLED: {
+        "name": "ACLED",
+        "description": """
+                        The Armed Conflict Location & Event Dataset.
+                       ACLED collects information on the dates, actors, locations, fatalities, and types of all reported
+                       political violence and protest events around the world.
+                       """
     }
 }
 
@@ -374,7 +382,7 @@ def run_llama_index_subquestion_engine(query: str):
                                                    llm=llm
                                                    )
 
-    #question_generator = OpenAIQuestionGenerator.from_defaults()
+    # question_generator = OpenAIQuestionGenerator.from_defaults()
     question_generator = LLMQuestionGenerator.from_defaults(service_context=service_context)
 
     query_engine_tools = []
@@ -484,10 +492,10 @@ if __name__ == '__main__':
     questions = [
         # "List all steel factories in China!",
         # "Any floods in Germany in 2023?",
-        """
-        I need info on negative events around my production sites, delivery routes and suppliers.
-        My production site is Kiel in Germany, where I produce furniture from oak wood.
-        I get the oak wood from Helsinki in Finland by ship."
+        """     
+            I need info on negative events around my production sites, delivery routes and suppliers.
+            My production site is Kiel in Germany, where I produce furniture from oak wood.
+            I get the oak wood from Helsinki in Finland by ship."
         """
 
     ]
@@ -497,11 +505,11 @@ if __name__ == '__main__':
         #
         # run_langchain_merger_retriever(q)
         #
-        # run_langchain_multi_retrieval_qa_chain(q)
+        run_langchain_multi_retrieval_qa_chain(q)
         #
         # run_langchain_rephrase_retriever(q)
 
-        # run_multi_retriever_llama_index(q)
+        run_multi_retriever_llama_index(q)
 
         run_llama_index_subquestion_engine(q)
 

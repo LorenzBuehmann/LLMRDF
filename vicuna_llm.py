@@ -29,7 +29,7 @@ class VicunaLLM(LLM):
         }
 
         json_data = {
-            'model': 'vicuna-13b-v1.1',
+            'model': 'vicuna-13b-v1.5',
             'messages': [
                 {
                     'role': 'user',

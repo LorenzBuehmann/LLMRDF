@@ -141,13 +141,13 @@ def clear_data():
 @click.option('--index-per-dataset', is_flag=True)
 def create_index(index_per_dataset: bool):
     datasets = [
-        Dataset.GTA,
+        # Dataset.GTA,
         Dataset.DISASTERS,
         Dataset.ACLED,
         # Dataset.EMDAT,
         # Dataset.RTA,
-        Dataset.CLIMATETRACE,
-        Dataset.COUNTRY_RISK
+        # Dataset.CLIMATETRACE,
+        # Dataset.COUNTRY_RISK
     ]
 
     for ds in datasets:

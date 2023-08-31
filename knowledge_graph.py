@@ -72,17 +72,45 @@ def query_from_file(file: str):
     return query
 
 
+from enum import auto
+from collections import namedtuple
 class Dataset(Enum):
-    GTA = 1
-    DISASTERS = 2
-    ACLED = 3
+    GTA = 1, """
+    provides timely information on state interventions taken since November 2008 that are likely to affect foreign commerce.
+    It includes state interventions affecting trade in goods and services, foreign investment and labour force migration.
+    """
+    DISASTERS = 2, 'natural disasters like flood, drought and others'
+    ACLED = 3, """
+    dates, actors, locations, fatalities, and types of all reported political violence and protest events around the world
+    """
     EMDAT = 4
     WILDFIRE = 5
     WIKIEVENT = 6
     RTA = 7
     ALL_EVENTS = 8
-    CLIMATETRACE = 9
-    COUNTRY_RISK = 10
+    CLIMATETRACE = 9, 'manufacturing infrastructure like mines, factories and oil fields'
+    COUNTRY_RISK = 10, """
+    World Risk Index. It uses 27 aggregated, publicly available indicators to determine disaster risk for 181 countries worldwide. 
+    Conceptually, the index is composed of exposure to extreme natural hazards and the societal vulnerability of individual countries
+    """
+    INFRASTRUCTURE = 11, "infrastructure like airports, ports, train stations and power plants"
+
+    def __new__(cls, *args, **kwds):
+        obj = object.__new__(cls)
+        obj._value_ = args[0]
+        return obj
+
+    # ignore the first param since it's already set by __new__
+    def __init__(self, _: str, description: str = None):
+        self._description_ = description
+
+    def __str__(self):
+        return self.value
+
+    # this makes sure that the description is read-only
+    @property
+    def description(self):
+        return self._description_
 
 
 class KnowledgeGraph(ABC):
