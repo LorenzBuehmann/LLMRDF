@@ -49,7 +49,7 @@ import os
 
 
 
-WEAVIATE_URL = "http://localhost:8080" # os.environ.get("WEAVIATE_URL")
+WEAVIATE_URL = os.environ.get("WEAVIATE_URL")
 
 
 def setup_weaviate() -> weaviate.Client:
