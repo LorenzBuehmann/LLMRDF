@@ -1,14 +1,14 @@
+from pathlib import Path
+
 from llama_index import (
         LLMPredictor,
         ServiceContext,
         GPTVectorStoreIndex,
         Document,
-        StorageContext,
-        load_index_from_storage
     )
 
 from langchain import OpenAI, LlamaCpp
-from rdf_loader import RDFReader
+from customllama_index.rdf_loader import RDFReader
 
 import os
 
@@ -33,13 +33,13 @@ def setup_llm() -> ServiceContext:
 
     return service_context
 
-# Press the green button in the gutter to run the script.
+
 if __name__ == '__main__':
     # RDFReader = download_loader("RDFReader")
-    document = RDFReader().load_data(file="file:///tmp/sample.ttl")
+    document = RDFReader().load_data(file=Path("file:///tmp/sample.ttl"))
 
     # need to split because the read returns only a single document TODO why? does it matter?
-    documents = [Document(t) for t in document[0].text.split("\n")]
+    documents = [Document(text=t) for t in document[0].text.split("\n")]
 
     service_context = setup_llm()
 

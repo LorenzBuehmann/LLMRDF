@@ -1,5 +1,6 @@
-from llama_index import VectorStoreIndex, SimpleDirectoryReader, StorageContext, ServiceContext, LLMPredictor, ResponseSynthesizer, LangchainEmbedding
-from llama_index.indices.response.type import ResponseMode
+from llama_index import VectorStoreIndex, ServiceContext, LLMPredictor, LangchainEmbedding
+from llama_index.response_synthesizers import ResponseMode, get_response_synthesizer
+
 from llama_index.vector_stores import WeaviateVectorStore
 from llama_index.retrievers import VectorIndexRetriever
 from llama_index.query_engine import RetrieverQueryEngine
@@ -7,14 +8,8 @@ from llama_index.query_engine import RetrieverQueryEngine
 
 import weaviate
 
-from langchain.vectorstores import Weaviate
-from langchain.text_splitter import CharacterTextSplitter
-from langchain.document_loaders import TextLoader
-import os
-from langchain.chains import RetrievalQA, RetrievalQAWithSourcesChain
-from langchain import OpenAI, LlamaCpp
-from vicuna_llm import VicunaLLM
-from instructor_embeddings import InstructorEmbeddings
+from customlangchain.vicuna_llm import VicunaLLM
+from customlangchain.instructor_embeddings import InstructorEmbeddings
 
 
 if __name__ == '__main__':
@@ -55,11 +50,7 @@ if __name__ == '__main__':
     )
 
     # configure response synthesizer
-    response_synthesizer = ResponseSynthesizer.from_args(
-        service_context=service_context,
-        response_mode=ResponseMode.TREE_SUMMARIZE,
-        verbose=True,
-    )
+    response_synthesizer = get_response_synthesizer(response_mode=ResponseMode.TREE_SUMMARIZE)
 
     # assemble query engine
     query_engine = RetrieverQueryEngine(

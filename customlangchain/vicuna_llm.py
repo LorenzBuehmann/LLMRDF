@@ -1,12 +1,20 @@
+import os
 from typing import Any, List, Mapping, Optional
 
 from langchain.llms.base import LLM
 from langchain.callbacks.manager import (
     CallbackManagerForLLMRun,
 )
+import logging
+import time
+
+logger = logging.getLogger(__name__)
+
+VICUNA_API_KEY = os.environ.get("COYPU_TURBO_API_KEY")
 
 
 class VicunaLLM(LLM):
+
     @property
     def _llm_type(self) -> str:
         return "vicuna"
@@ -38,12 +46,19 @@ class VicunaLLM(LLM):
             ],
             'temperature': 0,
             'max_tokens': 2048,
+            'top_p': 1,
             'key': 'M7ZQL9ELMSDXXE86',
         }
 
-        response = requests.post('https://turbo.skynet.coypu.org/', headers=headers, json=json_data)
+        logger.debug(f"Vicuna prompt: {prompt}")
 
-        text = response.json()[0]['choices'][0]['message']['content']
+        s = time.time()
+        response = requests.post('https://turbo.skynet.coypu.org/', headers=headers, json=json_data)
+        e = time.time()
+
+        logger.debug(f"got response in {e - s}s")
+        # text = response.json()[0]['choices'][0]['message']['content']
+        text = response.json()['content']
 
         text = text.replace("\\_", "_") # needed to avoid invalid escaped JSON keys for reuqested JSON response in LangChain
 

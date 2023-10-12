@@ -193,7 +193,8 @@ class CoypuKnowledgeGraph:
         logging.debug(query)
         return self.get_rdf_data(query=query)
 
-    def get_ontology(self, with_imports: bool = False):
+    @staticmethod
+    def get_ontology(with_imports: bool = False):
         import fsspec
 
         url = "https://schema.coypu.org/global/2.3.ttl"

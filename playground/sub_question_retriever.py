@@ -12,22 +12,19 @@ from llama_index.vector_stores import WeaviateVectorStore
 from llama_index.storage.storage_context import StorageContext
 import weaviate
 
-from instructor_embeddings import InstructorEmbeddings
+from customlangchain.instructor_embeddings import InstructorEmbeddings
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from llama_index.question_gen.llm_generators import LLMQuestionGenerator
 from llama_index.question_gen.openai_generator import OpenAIQuestionGenerator
 from llama_index.llms import LangChainLLM
-from vicuna_llm import VicunaLLM
+from customlangchain.vicuna_llm import VicunaLLM
 
 llm = LangChainLLM(llm=VicunaLLM())
 
 
 openai.api_key = os.environ["OPENAI_API_KEY"]
-
-import nest_asyncio
 
 # nest_asyncio.apply()
 

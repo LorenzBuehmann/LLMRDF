@@ -7,6 +7,7 @@ from llama_index.readers.base import BaseReader
 from llama_index.readers.schema.base import Document
 
 from rdflib import Graph, URIRef, Literal
+from rdflib.namespace import RDF, RDFS
 
 
 class RDFReader(BaseReader):
@@ -20,10 +21,9 @@ class RDFReader(BaseReader):
         """Initialize loader."""
         super().__init__(*args, **kwargs)
 
-        from rdflib import Graph, URIRef, Literal
-        from rdflib.namespace import RDF, RDFS
+        self.g_global = Graph()
+        self.g_local = Graph()
 
-        self.Graph = Graph
         self.RDF = RDF
         self.RDFS = RDFS
 
@@ -60,10 +60,8 @@ class RDFReader(BaseReader):
 
         lang = extra_info["lang"] if extra_info is not None else "en"
 
-        self.g_local = self.Graph()
         self.g_local.parse(file)
 
-        self.g_global = self.Graph()
         self.g_global.parse(str(self.RDF))
         self.g_global.parse(str(self.RDFS))
 
@@ -81,4 +79,4 @@ class RDFReader(BaseReader):
 
         text = "\n".join(text_list)
 
-        return [Document(text, extra_info=extra_info)]
+        return [Document(text=text, extra_info=extra_info)]

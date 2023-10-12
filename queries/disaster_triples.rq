@@ -8,7 +8,7 @@ CONSTRUCT {
   ?event coy:hasEventType ?type .
   ?event coy:hasCountryLocation ?country .
   ?event rdfs:label ?label .
-  ?event coy:hasDate ?date .
+  ?event coy:hasTimestamp ?date .
   ?country rdfs:label ?country_label .
   ?type rdfs:label ?type_label .
   coy:hasDate rdfs:label "has date"@en .

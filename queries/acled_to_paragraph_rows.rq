@@ -6,10 +6,21 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT * {
         ?entity a ?_event_type . ?_event_type rdfs:label ?event_type .
         ?entity coy:hasCountryLocation ?_event_country . ?_event_country rdfs:label ?event_country .
-        ?entity coy:hasLocation ?_event_location .  ?_event_location rdfs:label ?event_location .
+        OPTIONAL {
+           ?entity coy:hasLocation ?_event_location .  ?_event_location rdfs:label ?event_location .
+        }
         ?entity rdfs:label ?label .
         ?entity coy:hasTimestamp ?event_date .
         ?entity coy:hasFatalities ?num_fatalities .
+
+        ?entity coy:hasActor ?actor1 . ?actor1 rdfs:label ?actor1_label .
+        OPTIONAL {
+           ?entity coy:hasActor ?actor2 .
+           FILTER(?actor1 != ?actor2)
+           ?actor2 rdfs:label ?actor2_label .
+        }
+
         #BIND(xsd:date(?ts) AS ?event_date)
-        FILTER(?event_type not in (coy:Event, coy:Disaster))
+        FILTER(?event_type not in (coy:Event, coy:Conflict))
+        FILTER(!BOUND(?actor2) || ?actor1_label < ?actor2_label) # we have to sort here to avoid duplicate rows
       }

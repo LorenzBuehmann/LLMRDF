@@ -4,50 +4,86 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 CONSTRUCT {
-  ?event a ?sub_event_type , ?event_type .
+  ?event a ?sub_event_type . #, ?event_type .
   ?event coy:hasCountryLocation ?country .
   ?event coy:hasLocation ?location .
   ?event rdfs:label ?label .
-  ?event coy:hasTimestamp ?date .
+  ?event coy:hasTimestamp ?ts .
   ?event coy:hasFatalities ?num_fatalities .
+
+  ?event coy:hasActor ?actor1 . ?actor1 rdfs:label ?actor1_label .
+  ?event coy:hasActor ?actor2 . ?actor2 rdfs:label ?actor2_label .
 
   ?country rdfs:label ?country_label .
   ?sub_event_type rdfs:label ?sub_event_type_label .
   ?event_type rdfs:label ?event_type_label .
-   ?location rdfs:label ?location_label .
+  ?location rdfs:label ?location_label .
 } WHERE {
+ {
+    {
+    SELECT DISTINCT ?event {
+      GRAPH <https://data.coypu.org/events/acled/2023/> {
+         BIND(NOW() AS ?now)
+         BIND(xsd:date(?now - "P1M"^^xsd:duration) AS ?start)
+         ?event a coy:Conflict ;
+                coy:hasTimestamp ?ts .
+         FILTER(?ts >= ?start)
+      }
+    }
+    ORDER BY ?event
+    LIMIT 500
+    }
+  LATERAL
   {
     SELECT * {
-      graph <https://data.coypu.org/events/acled/2023/> {
+      GRAPH <https://data.coypu.org/events/acled/2023/> {
         ?event a ?sub_event_type .
         FILTER(?sub_event_type not in (coy:Event, coy:Conflict)) # we omit the generic types, just keep the sub-event type
 
-
         ?event coy:hasTimestamp ?ts .
-        BIND(xsd:date(?ts) AS ?date)
-        FILTER(year(?date) = 2023)
 
         ?event coy:hasCountryLocation ?country .
         ?event rdfs:label ?label .
 
-        #OPTIONAL {
-        ?event coy:hasLocation ?location .
-        #}
         ?event coy:hasFatalities ?num_fatalities .
+
+        OPTIONAL {
+            ?event coy:hasLocation ?location .
+            GRAPH <https://data.coypu.org/geonames/> {?location rdfs:label ?location_label}
+        }
+
+        OPTIONAL {
+            ?event coy:hasActor ?actor1 . ?actor1 rdfs:label ?actor1_label_ .
+            BIND(REPLACE(?actor1_label_, "\\s(\\(\\d{4}.*\\))", "") AS ?actor1_label)
+
+            #OPTIONAL {
+            #    ?actor1 coy:hasCountryLocation ?actor1_country .
+            #}
+            OPTIONAL {
+                ?event coy:hasActor ?actor2 . ?actor2 rdfs:label ?actor2_label_ .
+                BIND(REPLACE(?actor2_label_, "\\s(\\(\\d{4}.*\\))", "") AS ?actor2_label)
+                FILTER(?actor1 != ?actor2)
+                #OPTIONAL {
+                #    ?actor2 coy:hasCountryLocation ?actor2_country .
+                #}
+            }
+            FILTER(!BOUND(?actor2) || str(?actor1) < str(?actor2))
+        }
       }
-    } LIMIT 500
+    }
   }
 
-
+ }
 
   LATERAL {
-       # get the event type based on the sub-event type from the ontology hierarchy
-       ?sub_event_type rdfs:subClassOf ?event_type .
+      # get the event type based on the sub-event type from the ontology hierarchy
+      ?sub_event_type rdfs:subClassOf ?event_type .
 
-         # get labels TODO do it more efficiently, maybe offline to avoid heavy joins
-      ?country rdfs:label ?country_label .
+      # get labels TODO do it more efficiently, maybe offline to avoid heavy joins
+      {SELECT * {GRAPH <https://data.coypu.org/countries/> {?country rdfs:label ?country_label .}} LIMIT 1} # dumb ... we have more than one label e.g. for Denmark (others?)
       ?sub_event_type rdfs:label ?sub_event_type_label .
       ?event_type rdfs:label ?event_type_label .
-      ?location rdfs:label ?location_label .
+      #?actor1_country rdfs:label ?actor1_country_label .
+      #?actor2_country rdfs:label ?actor2_country_label .
   }
 }

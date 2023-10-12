@@ -207,7 +207,7 @@ if __name__ == '__main__':
     for s, text in zip(subjects, texts):
         print(f"{s}\n{text}")
 
-    environment = jinja2.Environment(loader=FileSystemLoader("templates/"),
+    environment = jinja2.Environment(loader=FileSystemLoader("../templates/"),
                                      trim_blocks=True,
                                      lstrip_blocks=True)
     template = environment.get_template(f"{dataset}.template")

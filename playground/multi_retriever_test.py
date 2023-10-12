@@ -1,4 +1,6 @@
 from dotenv import load_dotenv
+from langchain.llms import OpenAI as OpenAILangChain
+
 load_dotenv()
 
 import logging
@@ -23,7 +25,7 @@ from llama_index import ServiceContext
 from llama_index import VectorStoreIndex, LLMPredictor, \
     LangchainEmbedding
 from llama_index.callbacks import CallbackManager, LlamaDebugHandler
-from llama_index.llms import OpenAI
+from llama_index.llms import OpenAI as OpenAILlamaIndex
 from llama_index.retrievers import RouterRetriever
 from llama_index.selectors.llm_selectors import LLMMultiSelector
 from llama_index.tools import RetrieverTool
@@ -32,20 +34,20 @@ from rdflib import Namespace
 from weaviate.util import generate_uuid5
 
 from instructor_api import Instructor, DEFAULT_EMBED_INSTRUCTION
-from instructor_embeddings import InstructorEmbeddings
+from customlangchain.instructor_embeddings import InstructorEmbeddings
 from knowledge_graph import CoypuKnowledgeGraph, Dataset
 from knowledge_graph_index import render_dataset_entities
-from vicuna_llm import VicunaLLM
+from customlangchain.vicuna_llm import VicunaLLM
 
 from llama_index.question_gen.openai_generator import OpenAIQuestionGenerator
-from llama_index.question_gen.llm_generators import LLMQuestionGenerator
-from llama_index.llms import LangChainLLM
 from llama_index.query_engine import SubQuestionQueryEngine
 from llama_index.tools import QueryEngineTool, ToolMetadata
-from llama_index.storage.storage_context import StorageContext
 
 from langchain.retrievers import RePhraseQueryRetriever
 import os
+
+from llama_index import set_global_service_context
+
 
 
 
@@ -97,7 +99,7 @@ def load_data(class_name: str, uris: List[str], sentences: List[str]):
                 batch_size=32,
                 num_workers=2
         ) as batch:
-            for i, data in enumerate(zip(uri_batch, sentences_batch, embeddings)):
+            for j, data in enumerate(zip(uri_batch, sentences_batch, embeddings)):
                 # print(f"{data[0]}")
 
                 uri = data[0]
@@ -153,7 +155,7 @@ def setup_datasets():
 
 def run_langchain_multi_query_retriever(query: str):
     logging.basicConfig()
-    logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
+    logging.getLogger("customlangchain.retrievers.multi_query").setLevel(logging.INFO)
 
     embedding = InstructorEmbeddings()
 
@@ -233,20 +235,21 @@ dataset_infos = {
 
 
 embedding = InstructorEmbeddings()
-llm = VicunaLLM()
+llm_vicuna = VicunaLLM()
+llm_openai = OpenAILangChain(model_name="gpt-3.5-turbo-instruct")
 
-predictor = LLMPredictor(llm=llm)
+
+# predictor = LLMPredictor(llm=llm)
 embedding_model = LangchainEmbedding(InstructorEmbeddings())
-
-llama_debug = LlamaDebugHandler(print_trace_on_end=True)
-callback_manager = CallbackManager([llama_debug])
-service_context = ServiceContext.from_defaults(
-    embed_model=embedding_model,
-    llm_predictor=predictor,
-    callback_manager=callback_manager
-)
-from llama_index import set_global_service_context
-set_global_service_context(service_context)
+#
+# llama_debug = LlamaDebugHandler(print_trace_on_end=True)
+# callback_manager = CallbackManager([llama_debug])
+# service_context = ServiceContext.from_defaults(
+#     embed_model=embedding_model,
+#     llm_predictor=predictor,
+#     callback_manager=callback_manager
+# )
+# set_global_service_context(service_context)
 
 
 def create_langchain_retriever(index_name: str):
@@ -290,7 +293,7 @@ def run_langchain_merger_retriever(query: str):
 
     # This filter will divide the documents vectors into clusters or "centers" of meaning.
     # Then it will pick the closest document to that center for the final results.
-    # By default the result document will be ordered/grouped by clusters.
+    # By default, the result document will be ordered/grouped by clusters.
     filter_ordered_cluster = EmbeddingsClusteringFilter(
         embeddings=filter_embeddings,
         num_clusters=10,
@@ -324,7 +327,7 @@ def run_langchain_merger_retriever(query: str):
     print_documents(docs)
 
 
-def run_langchain_multi_retrieval_qa_chain(query: str):
+def run_langchain_multi_retrieval_qa_chain(query: str, llm=llm_vicuna):
     langchain.debug = True
 
     retriever_infos = []
@@ -357,9 +360,9 @@ def run_langchain_multi_retrieval_qa_chain(query: str):
     # print(chain.run("What are risks of Germany?"))
 
 
-def run_langchain_rephrase_retriever(query: str):
+def run_langchain_rephrase_retriever(query: str, llm=llm_vicuna):
     logging.basicConfig()
-    logging.getLogger("langchain.retrievers.re_phraser").setLevel(logging.INFO)
+    logging.getLogger("customlangchain.retrievers.re_phraser").setLevel(logging.INFO)
 
     retriever = create_langchain_retriever(Dataset.DISASTERS.name)
 
@@ -377,13 +380,9 @@ def run_langchain_rephrase_retriever(query: str):
 
 def run_llama_index_subquestion_engine(query: str):
     embed_model = LangchainEmbedding(InstructorEmbeddings())
-    service_context = ServiceContext.from_defaults(callback_manager=callback_manager,
-                                                   embed_model=embed_model,
-                                                   llm=llm
-                                                   )
 
-    # question_generator = OpenAIQuestionGenerator.from_defaults()
-    question_generator = LLMQuestionGenerator.from_defaults(service_context=service_context)
+    question_generator = OpenAIQuestionGenerator.from_defaults()
+    # question_generator = LLMQuestionGenerator.from_defaults(service_context=service_context)
 
     query_engine_tools = []
     for d in datasets:
@@ -423,7 +422,7 @@ def run_llama_index_subquestion_engine(query: str):
         print("====================================")
 
 
-def run_multi_retriever_llama_index(query: str):
+def run_multi_retriever_llama_index(query: str,llm=llm_vicuna):
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     logging.getLogger().handlers = []
     logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
@@ -447,7 +446,6 @@ def run_multi_retriever_llama_index(query: str):
                     "Conceptually, the index is composed of exposure to extreme natural hazards and the societal vulnerability of individual countries.",
     )
 
-    llm = OpenAI(model="gpt-3.5-turbo", temperature=0)
     # llm = VicunaLLM()
     predictor = LLMPredictor(llm=llm)
     embedding_model = LangchainEmbedding(InstructorEmbeddings())
@@ -485,8 +483,27 @@ def run_multi_retriever_llama_index(query: str):
         print(text)
 
 
-
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s %(name)s %(levelname)-8s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S")
+
+    use_openai = True
+
+    llm = llm_openai if use_openai else llm_vicuna
+    llm_instruct = OpenAILlamaIndex(model="gpt-3.5-turbo")
+
+    predictor = LLMPredictor(llm=llm_instruct)
+
+    llama_debug = LlamaDebugHandler(print_trace_on_end=True)
+    callback_manager = CallbackManager([llama_debug])
+    service_context = ServiceContext.from_defaults(
+        embed_model=embedding_model,
+        llm_predictor=predictor,
+        callback_manager=callback_manager
+    )
+    set_global_service_context(service_context)
     # setup_datasets()
 
     questions = [
@@ -505,11 +522,11 @@ if __name__ == '__main__':
         #
         # run_langchain_merger_retriever(q)
         #
-        run_langchain_multi_retrieval_qa_chain(q)
+        # run_langchain_multi_retrieval_qa_chain(q, llm)
         #
         # run_langchain_rephrase_retriever(q)
 
-        run_multi_retriever_llama_index(q)
+        # run_multi_retriever_llama_index(q)
 
         run_llama_index_subquestion_engine(q)
 

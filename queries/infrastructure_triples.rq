@@ -1,0 +1,86 @@
+PREFIX geof: <http://www.opengis.net/def/function/geosparql/>
+PREFIX spatialf: <http://jena.apache.org/spatial#>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX coy: <https://schema.coypu.org/global#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ta: <https://schema.coypu.org/ta#>
+PREFIX geob: <https://schema.coypu.org/geoboundaries#>
+
+CONSTRUCT {
+  ?infrastructure a ?type .
+  ?type rdfs:label ?type_label .
+  ?infrastructure rdfs:label ?label .
+  ?infrastructure coy:hasIndustry ?industry .
+  ?infrastructure coy:hasResourceType ?resource_type .
+  ?industry skos:prefLabel ?industry_label .
+  ?infrastructure coy:hasInfrastructureType ?infrastructure_type .
+  ?infrastructure coy:hasCountryLocation ?country .
+  ?country rdfs:label ?country_label .
+  ?infrastructure geo:withinAdm1 ?adm1 . ?adm1 rdfs:label ?adm1_label .
+  ?infrastructure geo:withinAdm2 ?adm2 . ?adm2 rdfs:label ?adm2_label .
+
+} WHERE {
+  #   VALUES ?type {
+  ##      coy:Mine
+  #      coy:Factory
+  #    }
+  {
+    SELECT * {
+        VALUES ?g {
+            <https://data.coypu.org/infrastructure/ports/>
+            <https://data.coypu.org/infrastructure/railway/>
+            <https://data.coypu.org/infrastructure/airports/>
+            <https://data.coypu.org/infrastructure/powerplants/>
+        }
+      GRAPH ?g
+      {
+        #BIND(coy:Factory AS ?type)
+        VALUES ?type {
+                      coy:Mine
+                      coy:Factory
+        }
+        ?infrastructure a ?type .
+        ?infrastructure rdfs:label ?label .
+        OPTIONAL {
+          ?infrastructure coy:hasIndustry ?industry .
+          GRAPH <https://data.coypu.org/industry/nace2/> {
+            ?industry skos:prefLabel ?industry_label
+          }
+        }
+        OPTIONAL{
+          ?infrastructure coy:hasResourceType ?resource_type .
+        }
+        ?infrastructure coy:hasInfrastructureType ?infrastructure_type .
+        ?infrastructure coy:hasCountryLocation ?country .
+        ?infrastructure geo:hasGeometry/geo:asWKT ?coordinate_location .
+      }
+    }
+#    LIMIT 10
+  }
+
+  ?country rdfs:label ?country_label .
+  ?type rdfs:label ?type_label .
+
+  LATERAL {
+    OPTIONAL {
+      GRAPH <https://data.coypu.org/administrative-regions/> {
+        ?adm1 spatialf:intersectBoxGeom (?coordinate_location) .
+        ?adm1 geo:hasGeometry/geo:asWKT ?adm1_polygon .
+        ?adm1 geob:hasAdminLevel 1	 .
+        FILTER(geof:sfContains(?adm1_polygon, ?coordinate_location))
+        ?adm1 rdfs:label ?adm1_label
+      }
+      OPTIONAL {
+        GRAPH <https://data.coypu.org/administrative-regions/> {
+          ?adm2 spatialf:intersectBoxGeom (?coordinate_location) .
+          ?adm2 geo:hasGeometry/geo:asWKT ?adm2_polygon .
+          ?adm2 geob:hasAdminLevel 2	 .
+          FILTER(geof:sfContains(?adm2_polygon, ?coordinate_location))
+          ?adm2 rdfs:label ?adm2_label
+        }
+      }
+    }
+  }
+}

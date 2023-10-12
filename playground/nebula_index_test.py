@@ -10,8 +10,7 @@ from llama_index import (
 from llama_index.storage.storage_context import StorageContext
 from llama_index.graph_stores import NebulaGraphStore
 
-from langchain import OpenAI
-from vicuna_llm import VicunaLLM
+from customlangchain.vicuna_llm import VicunaLLM
 
 documents = SimpleDirectoryReader('/tmp/paul_graham_essay/data').load_data()
 

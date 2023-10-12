@@ -15,7 +15,7 @@ class Instructor:
 
         if os.getenv("INSTRUCTOR_API_KEY") is not None:
             self.api_key = os.getenv("INSTRUCTOR_API_KEY")
-            print("INSTRUCTOR_API_KEY is ready")
+            # print("INSTRUCTOR_API_KEY is ready")
         else:
             print("INSTRUCTOR_API_KEY environment variable not found")
             raise ValueError(

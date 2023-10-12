@@ -27,11 +27,16 @@ class WeaviateHybridSearchRetrieverLocalEmbeddings(WeaviateHybridSearchRetriever
         *,
         run_manager: CallbackManagerForRetrieverRun,
         where_filter: Optional[Dict[str, object]] = None,
+        score: bool = False,
+        hybrid_search_kwargs: Optional[Dict[str, object]] = None,
     ) -> List[Document]:
         """Look up similar documents in Weaviate."""
         query_obj = self.client.query.get(self.index_name, self.attributes)
         if where_filter:
             query_obj = query_obj.with_where(where_filter)
+
+        if score:
+            query_obj = query_obj.with_additional(["score", "explainScore"])
 
         if self.explain_score:
             query_obj = query_obj.with_additional(["score", "explainScore"])
