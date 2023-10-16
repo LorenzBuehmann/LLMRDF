@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+
+from dotenv import load_dotenv
 from rdflib import Graph, URIRef, Literal
 from typing import Any, Dict, List, Optional
 from rdflib.namespace import RDF, RDFS
@@ -158,7 +160,7 @@ class EntityTripleFormGraphVerbalizer(TripleFormGraphVerbalizer):
         subject_texts = []
         subjects = []
 
-        label_triples = [t for t in graph.triples((None, RDFS.label, None))]
+        label_triples = [t for t in graph.triples((None, RDFS.label, None)) if t[2].language == lang]
         for s in graph.subjects(unique=True):
             s_graph = Graph()
             # s_graph.add((URIRef("https://schema.coypu.org/global#hasDate"), RDFS.label, Literal("has date")))
@@ -192,11 +194,13 @@ if __name__ == '__main__':
     import jinja2
     from jinja2 import Environment, FileSystemLoader, Template
 
+    load_dotenv()
+
     kg = CoypuKnowledgeGraph()
 
     dataset = "country_risk"
 
-    query = query_from_file(f"queries/{dataset}_triples.rq")
+    query = query_from_file(f"../queries/{dataset}_triples.rq")
 
     res = kg.query(query)
     ontology_graph = kg.get_ontology(with_imports=True)
@@ -211,7 +215,7 @@ if __name__ == '__main__':
                                      trim_blocks=True,
                                      lstrip_blocks=True)
     template = environment.get_template(f"{dataset}.template")
-    query = query_from_file(f"queries/{dataset}_to_paragraph_rows.rq")
+    query = query_from_file(f"../queries/{dataset}_to_paragraph_rows.rq")
     verbalizer = TemplateGraphVerbalizer(query=query, template=template)
     text = verbalizer.verbalize(res)
     print(text)
