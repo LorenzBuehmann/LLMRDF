@@ -422,7 +422,7 @@ def load_data(class_name: str, uris: List[str], sentences: List[str], additional
 
         embeddings = instructor.compute_embeddings(instruction=DEFAULT_EMBED_INSTRUCTION, text=sentences_batch)
 
-        with client.batch() as batch:
+        with client.batch as batch:
             for j, data in enumerate(zip(uri_batch, sentences_batch, embeddings)):
                 # print(f"{data[0]}")
 
@@ -434,7 +434,7 @@ def load_data(class_name: str, uris: List[str], sentences: List[str], additional
                     "content": data[1]
                 }
 
-                if additional_data is not None:
+                if additional_data is not None and uri in additional_data:
                     properties |= additional_data[uri]
 
                 batch.add_data_object(properties,
