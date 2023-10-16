@@ -222,7 +222,7 @@ vector_dbs = {
 }
 
 
-def create_langchain_retriever(ds: Dataset, llm, self_query: bool, limit: int):
+def create_langchain_retriever(ds: Dataset, llm, self_query: bool, limit: int = 10):
     vector_db = vector_dbs[ds.name]
 
     if self_query:
@@ -253,7 +253,7 @@ def create_langchain_retriever(ds: Dataset, llm, self_query: bool, limit: int):
     return retriever
 
 
-async def subquestion_query_retrieval(query: str, question_gen, llm, self_query: bool):
+async def subquestion_query_retrieval(query: str, question_gen, llm, self_query: bool, limit: int =10):
     # generate subquestions
     logger.info("computing subquestions ...")
     sub_questions = await question_gen.agenerate(
@@ -267,7 +267,7 @@ async def subquestion_query_retrieval(query: str, question_gen, llm, self_query:
         logger.info(f"retrieval for subquestion \"{sub_q} \" ...")
         question = sub_q.sub_question
         ds = Dataset[sub_q.tool_name]
-        retriever = create_langchain_retriever(ds, llm, self_query)
+        retriever = create_langchain_retriever(ds, llm, self_query, limit)
         docs_ = retriever.get_relevant_documents(question)
         docs += docs_
 
@@ -366,7 +366,8 @@ async def documents(question: str,
         similar_docs = await subquestion_query_retrieval(question,
                                                          question_gen=question_gen,
                                                          llm=llm,
-                                                         self_query=self_querying_retrieval)
+                                                         self_query=self_querying_retrieval,
+                                                         limit=limit)
     else:
         if llm_based_router:
             logger.info("LLM-based routing ...")
