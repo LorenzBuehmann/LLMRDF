@@ -34,7 +34,7 @@ services:
     - http
     networks:
     - backend
-    image: semitechnologies/weaviate:1.21.3
+    image: semitechnologies/weaviate:1.21.6
     hostname: weaviate
     container_name: weaviate
     ports:
