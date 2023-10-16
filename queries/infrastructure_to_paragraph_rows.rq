@@ -1,0 +1,22 @@
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX coy: <https://schema.coypu.org/global#>
+PREFIX gta: <https://schema.coypu.org/gta#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT
+*
+{
+  ?entity a ?type .
+  ?type rdfs:label ?type_label .
+
+  ?entity rdfs:label ?infrastructure_label .
+  ?entity coy:hasInfrastructureType ?infrastructure_type .
+
+  ?entity coy:hasCountryLocation ?country .
+  ?country rdfs:label ?country_label .
+
+  ?entity geo:withinAdm1 ?adm1 . ?adm1 rdfs:label ?adm1_label .
+  ?entity geo:withinAdm2 ?adm2 . ?adm2 rdfs:label ?adm2_label .
+}

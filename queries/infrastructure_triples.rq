@@ -1,4 +1,4 @@
-PREFIX geof: <http://www.opengis.net/def/function/geosparql/>
+PREFIX po: <http://purl.org/ontology/po/>
 PREFIX spatialf: <http://jena.apache.org/spatial#>
 PREFIX geo: <http://www.opengis.net/ont/geosparql#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -7,6 +7,8 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ta: <https://schema.coypu.org/ta#>
 PREFIX geob: <https://schema.coypu.org/geoboundaries#>
+PREFIX geof: <http://www.opengis.net/def/function/geosparql/>
+PREFIX ports: <https://schema.coypu.org/wfp-ports#>
 
 CONSTRUCT {
   ?infrastructure a ?type .
@@ -22,10 +24,6 @@ CONSTRUCT {
   ?infrastructure geo:withinAdm2 ?adm2 . ?adm2 rdfs:label ?adm2_label .
 
 } WHERE {
-  #   VALUES ?type {
-  ##      coy:Mine
-  #      coy:Factory
-  #    }
   {
     SELECT * {
         VALUES ?g {
@@ -36,24 +34,16 @@ CONSTRUCT {
         }
       GRAPH ?g
       {
-        #BIND(coy:Factory AS ?type)
         VALUES ?type {
-                      coy:Mine
-                      coy:Factory
+                      coy:Port
+                      coy:Airport
+                      coy:Powerplant
+                      #coy:RailwayStation
         }
         ?infrastructure a ?type .
         ?infrastructure rdfs:label ?label .
-        OPTIONAL {
-          ?infrastructure coy:hasIndustry ?industry .
-          GRAPH <https://data.coypu.org/industry/nace2/> {
-            ?industry skos:prefLabel ?industry_label
-          }
-        }
-        OPTIONAL{
-          ?infrastructure coy:hasResourceType ?resource_type .
-        }
         ?infrastructure coy:hasInfrastructureType ?infrastructure_type .
-        ?infrastructure coy:hasCountryLocation ?country .
+        ?infrastructure coy:hasCountryLocation|ports:hasOperatingCountry ?country .
         ?infrastructure geo:hasGeometry/geo:asWKT ?coordinate_location .
       }
     }

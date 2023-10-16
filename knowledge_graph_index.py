@@ -140,7 +140,8 @@ def create_index(index_per_dataset: bool):
         # Dataset.EMDAT,
         # Dataset.RTA,
         Dataset.CLIMATETRACE,
-        # Dataset.COUNTRY_RISK
+        Dataset.COUNTRY_RISK,
+        Dataset.INFRASTRUCTURE
     ]
 
     spatial_datasets = {
@@ -148,6 +149,7 @@ def create_index(index_per_dataset: bool):
         Dataset.ACLED,
         Dataset.CLIMATETRACE,
         Dataset.GTA,
+        Dataset.INFRASTRUCTURE
     }
 
     temporal_datasets = {
@@ -369,6 +371,9 @@ def render_dataset_entities(graph: Graph, ds: Dataset) -> Tuple[List[str], List[
     elif ds == Dataset.COUNTRY_RISK:
         template = environment.get_template("country_risk.template")
         query = "country_risk_to_paragraph_rows.rq"
+    elif ds == Dataset.INFRASTRUCTURE:
+        template = environment.get_template("transport_infrastructure.template")
+        query = "infrastructure_to_paragraph_rows.rq"
     else:
         raise ValueError(f"dataset {ds} not supported yet")
 
@@ -402,8 +407,7 @@ def load_data(class_name: str, uris: List[str], sentences: List[str], additional
     logging.debug(f"computing embeddings for {len(sentences)} triple texts ...")
     from tqdm.auto import tqdm
 
-    batch_size = 32  # process everything in batches of 32
-    batch_size = 50
+    batch_size = 50  # process everything in batches
     client.batch.configure(
         batch_size=batch_size,
         num_workers=4

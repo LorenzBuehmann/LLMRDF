@@ -137,7 +137,8 @@ class CoypuKnowledgeGraph:
         Dataset.EMDAT: 'emdat_triples.rq',
         Dataset.RTA: 'rta_triples.rq',
         Dataset.CLIMATETRACE: 'climatetrace_triples.rq',
-        Dataset.COUNTRY_RISK: 'country_risk_triples.rq'
+        Dataset.COUNTRY_RISK: 'country_risk_triples.rq',
+        Dataset.INFRASTRUCTURE: 'infrastructure_triples.rq'
     }
 
     def __init__(self, endpoint_url: str = "https://skynet.coypu.org/coypu-internal"):
@@ -176,7 +177,7 @@ class CoypuKnowledgeGraph:
         sparql.setHTTPAuth(BASIC)
         sparql.setCredentials(user=self.skynet_user, passwd=self.skynet_pwd)
 
-        logging.debug(query)
+        logging.info(query)
         sparql.setQuery(query)
         sparql.setReturnFormat(TURTLE)  # default is RDF/XML but it fails to parse for RTA dataset TODO check why
 
