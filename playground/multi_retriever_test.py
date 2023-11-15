@@ -236,7 +236,7 @@ dataset_infos = {
 
 embedding = InstructorEmbeddings()
 llm_vicuna = VicunaLLM()
-llm_openai = OpenAILangChain(model_name="gpt-3.5-turbo-instruct")
+llm_openai = OpenAILangChain(model_name="gpt-3.5-turbo")
 
 
 # predictor = LLMPredictor(llm=llm)

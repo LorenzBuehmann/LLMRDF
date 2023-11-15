@@ -38,7 +38,7 @@ CONSTRUCT {
                       coy:Port
                       coy:Airport
                       coy:Powerplant
-                      #coy:RailwayStation
+                      coy:TrainStation
         }
         ?infrastructure a ?type .
         ?infrastructure rdfs:label ?label .

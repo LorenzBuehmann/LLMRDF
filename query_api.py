@@ -72,6 +72,9 @@ modifications are needed.
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 
 load_dotenv()
 
@@ -102,12 +105,22 @@ vector_store = Weaviate(
 )
 
 search_kwargs = {'k': limit,
-                 'additional': ['distance', 'vector']
+                 'additional': ['distance',
+                                'vector',
+                                'rerank(property: "answer" query: "floating") { score }'
+                                ],
                  }
 retriever = vector_store.as_retriever(search_kwargs=search_kwargs)
 hybrid_retriever = WeaviateHybridSearchRetrieverLocalEmbeddings(
-   client=client, embedding=embedding, explain_score=True, by_text=False, index_name=index_name, text_key="content", attributes=['uri'],
-   create_schema_if_missing=False, k=limit
+    client=client,
+    embedding=embedding,
+    explain_score=True,
+    by_text=False,
+    index_name=index_name,
+    text_key="content",
+    attributes=['uri'],
+    create_schema_if_missing=False,
+    k=limit
 )
 
 # query = "Flood in France"
@@ -115,13 +128,6 @@ hybrid_retriever = WeaviateHybridSearchRetrieverLocalEmbeddings(
 # print(hybrid_retriever.get_relevant_documents(query))
 # print(vector_store.similarity_search_with_score(query, k=limit, search_kwargs={'additional': ['distance', 'vector']}))
 
-
-
-class Item(BaseModel):
-    name: str
-    description: str | None = None
-    tax: float | None = None
-    tags: list[str] = []
 
 description = """
 KG Index API helps you do awesome stuff. 🚀
@@ -153,11 +159,11 @@ app = FastAPI(
     openapi_url='/api/openapi.json')
 
 
-@app.get("/")
-def read_root():
-    return {
-        "message": "Make a post request to /documents to search for related documents"
-    }
+# @app.get("/")
+# def read_root():
+#     return {
+#         "message": "Make a post request to /documents to search for related documents"
+#     }
 
 
 current_datasets = [
@@ -165,6 +171,7 @@ current_datasets = [
     Dataset.ACLED,
     Dataset.CLIMATETRACE,
     Dataset.GTA,
+    Dataset.INFRASTRUCTURE
     # Dataset.COUNTRY_RISK,
 ]
 
@@ -217,9 +224,24 @@ vector_dbs = {
         embedding=embedding,
         index_name=ds.name,
         by_text=False,
-        attributes=["uri", "country"]
+        attributes=["uri", "country"],
     ) for ds in current_datasets
 }
+hybrid_retrievers = {
+    ds.name: WeaviateHybridSearchRetrieverLocalEmbeddings(
+        client=client,
+        embedding=embedding,
+        explain_score=True,
+        by_text=False,
+        index_name=ds.name,
+        text_key="content",
+        attributes=['uri', 'country'],
+        create_schema_if_missing=False,
+        k=limit,
+    ) for ds in current_datasets
+}
+
+
 
 
 def create_langchain_retriever(ds: Dataset, llm, self_query: bool, limit: int = 10):
@@ -247,8 +269,10 @@ def create_langchain_retriever(ds: Dataset, llm, self_query: bool, limit: int = 
             search_kwargs={'k': limit}
         )
     else:
-        search_kwargs = {'k': limit}
-        retriever = vector_db.as_retriever(search_kwargs=search_kwargs)
+        search_kwargs = {'k': limit, "additional": ["distance", "score"]}
+        # retriever = vector_db.as_retriever(search_kwargs=search_kwargs)
+        retriever = hybrid_retrievers[ds.name]
+        retriever.k = limit
 
     return retriever
 
@@ -289,8 +313,11 @@ async def search(question: str = Query(description="natural language query"),
         additional.append('distance')
     if with_vector:
         additional.append('vector')
+
+    additional.append('rerank(property: "answer" query: "floating") { score }')
     search_kwargs = {'k': limit,
-                     'additional': additional}
+                     'additional': additional,
+                     }
 
     hybrid_search_kwargs = {}
     if hybrid_search:
@@ -339,7 +366,7 @@ async def documents(question: str,
                                                           description="If enabled, retrieval on a vector DB will be done via a structured query, "
                                                                       "i.e. filters will be applied to make the result more specific to the question."),
                     use_openai: bool = Query(False,
-                                                          description="If enabled, OPENAI will be used use underlying LLM"
+                                                          description="If enabled, OPENAI will be used as underlying LLM"
                                                               "(don't forget to pass the OPENAI secret as query param as well!)."),
                     openai_secret: str = Query(None,
                                                description="OPENAI API key - if set, OPENAI will be used instead of Vicuna")
@@ -384,7 +411,7 @@ async def documents(question: str,
 
         logger.info(f"destination dataset for query: {route}")
         # print(route)
-        # get the retriever based on the output of the LLM
+        # get the retriever based on the output of the LLM  
         destination = route['destination']
         ds = Dataset[destination]
         retriever = create_langchain_retriever(ds, llm=llm, self_query=self_querying_retrieval, limit=limit)
@@ -425,6 +452,31 @@ async def subquestions(question: str = Query(description="natural language query
 
     return response
 
+
+@app.post("/datasets")
+async def datasets():
+    response = client.schema.get()
+
+    datasets = [{
+        'dataset': c['class'],
+        'description': c['description'],
+                 } for c in response['classes']]
+
+    return datasets
+
+
+@app.post("/count")
+async def size(dataset: str):
+    result = (
+        client.query
+        .aggregate(dataset)
+        .with_fields("meta { count }")
+        .do()
+    )
+
+    size = result['data']['Aggregate'][dataset][0]['meta']['count']
+
+    return {'count': size}
 
 # @app.get("/secure")
 # async def info(api_key: APIKey = Depends(auth.get_api_key)):

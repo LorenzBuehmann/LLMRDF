@@ -24,7 +24,10 @@ load_dotenv()
 QUERIES_PATH = Path("./queries")
 TEMPLATES_PATH = Path("./templates")
 WEAVIATE_URL = os.environ.get("WEAVIATE_URL")
+WEAVIATE_API_KEY = os.getenv('WEAVIATE_API_KEY')
 
+VECTORIZERS = {"text2vec-openai", "text2vec-cohere"}  # Needs to match with Weaviate modules
+EMBEDDINGS = {"MiniLM"}  # Custom Vectors
 
 instructor = Instructor('https://instructor.skynet.coypu.org/')
 
@@ -35,8 +38,13 @@ GTA = Namespace("https://schema.coypu.org/gta#")
 
 logger = logging.getLogger(__name__)
 
+
 def setup_weaviate() -> weaviate.Client:
-    client = weaviate.Client(WEAVIATE_URL)
+    client = weaviate.Client(
+        url=WEAVIATE_URL,
+        startup_period=10
+        # auth_client_secret=weaviate.AuthApiKey(api_key=WEAVIATE_API_KEY),
+    )
     client.is_ready()
 
     return client
@@ -61,7 +69,7 @@ def create_schema(client: Client):
             },
             {
                 "class": "CBD",
-                "description": "A collection of triples.",
+                "description": "A set of triples describing an entity.",
                 "properties": [
                     {
                         "dataType": ["text"],
@@ -81,6 +89,37 @@ def create_schema(client: Client):
     client.schema.create(schema)
 
 
+def add_vectorizer(
+    schema: dict, vectorizer: str, skip_properties: list[str] = []
+) -> dict:
+    """Verifies if the vectorizer is available and adds it to a schema, also skips vectorization if list is provided
+    @parameter schema : dict - Schema json
+    @parameter vectorizer : str - Name of the vectorizer
+    @parameter skip_properties: list[str] - List of property names that should not get vectorized
+    @returns dict - Modified schema if vectorizer is available
+    """
+    modified_schema = schema.copy()
+    # Verify Vectorizer
+    if vectorizer in VECTORIZERS:
+        modified_schema["classes"][0]["vectorizer"] = vectorizer
+
+        for property in modified_schema["classes"][0]["properties"]:
+            if property["name"] in skip_properties:
+                moduleConfig = {
+                    vectorizer: {
+                        "skip": True,
+                        "vectorizePropertyName": False,
+                    }
+                }
+                property["moduleConfig"] = moduleConfig
+    elif vectorizer in EMBEDDINGS:
+        pass
+    elif vectorizer is not None:
+        logger.warning(f"Could not find matching vectorizer: {vectorizer}")
+
+    return modified_schema
+
+
 def create_weaviate_class(client: Client, class_name: str, description: str):
     class_obj = {
                 "class": class_name,
@@ -90,6 +129,13 @@ def create_weaviate_class(client: Client, class_name: str, description: str):
                         "dataType": ["text"],
                         "description": "The concise bounded description of an entity as text.",
                         "name": "content",
+                        "indexInverted": True,
+                        "moduleConfig": {
+                            "text2vec-transformers": {
+                                "skip": False,
+                                "vectorizePropertyName": False,
+                            }
+                        }
                     },
                     {
                         "dataType": ["text"],
@@ -131,18 +177,41 @@ def clear_data():
 
 
 @cli.command()
-@click.option('--index-per-dataset', is_flag=True)
-def create_index(index_per_dataset: bool):
-    datasets = [
-        Dataset.GTA,
-        Dataset.DISASTERS,
-        Dataset.ACLED,
-        # Dataset.EMDAT,
-        # Dataset.RTA,
-        Dataset.CLIMATETRACE,
-        Dataset.COUNTRY_RISK,
-        Dataset.INFRASTRUCTURE
-    ]
+@click.option('--index-per-dataset', is_flag=True, help='if set, one separate index resp. collection of documents will be index for each selected dataset')
+@click.option('--auto-vectorize', is_flag=True, help="if set, the vector database Weaviate does the vectorization automatically, otherwise we'll compute the embeddings in advance")
+# @click.option('--datasets', cls=PythonLiteralOption, default=['ALL'])
+@click.option('--datasets', type=click.Choice([d.name for d in Dataset] + ["ALL"]),
+              multiple=True, default=["ALL"],
+              help='the datasets being indexed - "ALL" refers to all supported datasets')
+def create_index(index_per_dataset: bool, datasets, auto_vectorize: bool):
+    # try:
+    #     datasets = json.loads(datasets)
+    # except ValueError:
+    #     pass
+    #
+    # print(datasets)
+    if "ALL" in datasets:
+        if len(datasets) > 1:
+            logger.warning("ALL datasets requested, but others enumerated")
+
+        datasets = [
+            Dataset.GTA,
+            Dataset.DISASTERS,
+            Dataset.ACLED,
+            # Dataset.EMDAT,
+            # Dataset.RTA,
+            Dataset.CLIMATETRACE,
+            Dataset.COUNTRY_RISK,
+            Dataset.INFRASTRUCTURE
+        ]
+    else:
+        for ds in datasets:  # sanity check for existence in supported datasets
+            try:
+                Dataset[ds]
+            except ValueError:
+                print(f"dataset {ds} isn't supported (yet) - check spelling")
+
+        datasets = [Dataset[d] for d in datasets]
 
     spatial_datasets = {
         Dataset.DISASTERS,
@@ -203,7 +272,7 @@ def create_index(index_per_dataset: bool):
             class_name = ds.name
             create_weaviate_class(client, class_name, f"entities about {class_name}")
 
-        load_data(class_name, entities, paragraphs, additional_data)
+        load_data_text(class_name, entities, paragraphs, additional_data)
 
 
 @cli.command()
@@ -214,13 +283,16 @@ def recreate_index():
 
 @cli.command()
 @click.argument('question', nargs=1)
+@click.option('--auto-vectorize', is_flag=True, help="if set, the vector database Weaviate does the vectorization automatically, otherwise we'll compute the embeddings in advance")
 @click.option('--hybrid/--no-hybrid', 'hybrid_query_mode', default=False)
 @click.option('--limit', '-k', type=int, default=10)
 @click.option('--collection', 'collection_name', default="CBD")
-def query(question: str, hybrid_query_mode: bool, limit: int, collection_name: str):
-    query_embedding = instructor.compute_embedding(
-        instruction=DEFAULT_QUERY_INSTRUCTION,
-        text=question)
+def query(question: str, hybrid_query_mode: bool, limit: int, collection_name: str, auto_vectorize: bool):
+
+    if not auto_vectorize:
+        query_embedding = instructor.compute_embedding(
+            instruction=DEFAULT_QUERY_INSTRUCTION,
+            text=question)
 
     def render_result(res) -> str:
         print(res)
@@ -238,7 +310,7 @@ def query(question: str, hybrid_query_mode: bool, limit: int, collection_name: s
         print(f"Collection: {collection}")
         query_result = query_weaviate(client,
                                       query=question,
-                                      vector=query_embedding,
+                                      vector=query_embedding if not auto_vectorize else None,
                                       collection_name=collection,
                                       limit=limit,
                                       hybrid_search_mode=hybrid_query_mode)
@@ -249,24 +321,31 @@ def query(question: str, hybrid_query_mode: bool, limit: int, collection_name: s
             print(f"{i + 1}.\n {json.dumps(item, indent=4)}")
 
 
-def query_weaviate(client: Client, query: str, vector, collection_name: str, hybrid_search_mode: bool = True, limit: int = 10):
-    nearVector = {
-        "vector": vector,
-        "distance": 0.7,
-    }
+def query_weaviate(client: Client, query: str, vector, collection_name: str,
+                   hybrid_search_mode: bool = True, limit: int = 10, max_distance: float = 0.7):
 
     properties = [
         "content",
         "uri",
-        "country",
-        "year"
+        # "country",
+        # "year"
     ]
 
     builder = client.query.get(collection_name, properties)
     if hybrid_search_mode:
-        builder = builder.with_hybrid(query=query, vector=vector, properties=["content"],).with_additional(["score", "explainScore"])
+        if vector is None:
+            builder = builder.with_hybrid(query=query, properties=["content"])
+        else:
+            builder = builder.with_hybrid(query=query, vector=vector, properties=["content"])
+        builder = builder.with_additional(["score", "explainScore"])
     else:
-        builder = builder.with_near_vector(nearVector).with_additional(["distance", "certainty"])
+        if vector is None:
+            builder = builder.with_near_text(query)
+        else:
+            builder = builder.with_near_vector({"vector": vector,
+                                                "distance": max_distance}
+                                               )
+        builder = builder.with_additional(["distance", "certainty"])
 
     result = (
         builder
@@ -441,6 +520,38 @@ def load_data(class_name: str, uris: List[str], sentences: List[str], additional
                                       uuid=uuid,
                                       class_name=class_name,
                                       vector=data[2])
+
+
+def load_data_text(class_name: str, uris: List[str], sentences: List[str], additional_data: dict = None):
+    logging.debug(f"computing embeddings for {len(sentences)} triple texts ...")
+    from tqdm.auto import tqdm
+
+    batch_size = 50  # process everything in batches
+    client.batch.configure(
+        batch_size=batch_size,
+        num_workers=4
+    )
+    for i in tqdm(range(0, len(sentences), batch_size)):
+        uri_batch = uris[i: i + batch_size]
+        sentences_batch = sentences[i: i + batch_size]
+
+        with client.batch as batch:
+            for j, data in enumerate(zip(uri_batch, sentences_batch)):
+                uri = data[0]
+                uuid = generate_uuid5(uri)
+
+                properties = {
+                    "uri": uri,
+                    "content": data[1]
+                }
+
+                if class_name != "CBD" and additional_data is not None and uri in additional_data:
+                    properties |= additional_data[uri]
+
+                batch.add_data_object(properties,
+                                      uuid=uuid,
+                                      class_name=class_name,
+                                      )
 
 
 if __name__ == '__main__':

@@ -1,11 +1,8 @@
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
+from typing import Dict, List, Optional
 from langchain.embeddings.base import Embeddings
 from langchain.retrievers.weaviate_hybrid_search import WeaviateHybridSearchRetriever
 from langchain.schema.document import Document
-from langchain.callbacks.manager import (
-    AsyncCallbackManagerForRetrieverRun,
-    CallbackManagerForRetrieverRun,
-)
+from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 
 
 class WeaviateHybridSearchRetrieverLocalEmbeddings(WeaviateHybridSearchRetriever):
